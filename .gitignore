@@ -10,9 +10,13 @@ build/
 out/
 
 # 敏感配置文件（核心！）
-src/main/resources/application-dev.yml
-src/main/resources/application-prod.yml
+sky-server/src/main/resources/application-dev.yml
+sky-server/src/main/resources/application-prod.yml
+
+# Maven 本地仓库（不应提交）
+.m2/
 
 # 系统文件
 .DS_Store
 *.log
+Thumbs.db

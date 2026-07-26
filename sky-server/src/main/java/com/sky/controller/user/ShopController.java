@@ -23,6 +23,7 @@ public class ShopController {
      * 获取店铺的营业状态
      * @return
      */
+//  本质上等价于 @RequestMapping(method = RequestMethod.GET)，专门用于处理 HTTP GET 请求。
     @GetMapping("/status")
     @ApiOperation("获取店铺的营业状态")
     public Result<Integer> getStatus(){

@@ -1,0 +1,33 @@
+# ==========================================
+# 苍穹外卖 - 开发环境配置模板
+# 复制此文件为 application-dev.yml 并填入真实值
+# ==========================================
+
+sky:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: localhost
+    port: 3306
+    database: sky_take_out
+    username: root
+    password: 你的数据库密码
+  alioss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: 你的AccessKey
+    access-key-secret: 你的AccessSecret
+    bucket-name: 你的Bucket名称
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: 你的Redis密码
+    database: 10
+  wechat:
+    appid: 你的小程序AppID
+    secret: 你的小程序Secret
+    mchid: 商户号
+    mchSerialNo: 商户证书序列号
+    privateKeyFilePath: 商户私钥路径
+    apiV3Key: APIv3密钥
+    weChatPayCertFilePath: 微信支付平台证书路径
+    notifyUrl: 支付回调URL
+    refundNotifyUrl: 退款回调URL
