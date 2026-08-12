@@ -1,6 +1,6 @@
 # 苍穹外卖 (Sky Take-Out)
 
-一个完整的外卖点餐系统，包含管理后台、用户端小程序和服务端 API。
+一个完整的外卖点餐系统，集成 AI Agent 自然语言查询和大数据数仓分析平台。
 
 ## 技术栈
 
@@ -18,6 +18,9 @@
 | 实时推送 | WebSocket |
 | 定时任务 | Spring Scheduling |
 | Excel 导出 | Apache POI |
+| **AI Agent** | **DeepSeek API + 自研 Tool Use 循环引擎** |
+| **SSH 远程** | **JSch SSH 客户端** |
+| **大数据** | **Hadoop 3.3.6 / Hive 3.1.3 / HBase 2.5.15 / Spark 3.5.9 / Sqoop 1.4.7** |
 | 管理前端 | Vue 2 + TypeScript + Element UI + ECharts |
 | 用户端 | uni-app（微信小程序） |
 
@@ -32,6 +35,7 @@
 - **订单管理** — 订单查询、接单、拒单、派送、完成
 - **数据统计** — 营业额/用户/订单统计、销量排名 TOP10、导出报表
 - **实时提醒** — WebSocket 推送新订单通知
+- **🆕 AI 助手** — 自然语言查询 MySQL 或 Hive 数据仓库（SQL Agent + 大数据 Agent）
 
 ### 用户端（微信小程序）
 - 浏览菜品/套餐、加入购物车
@@ -59,7 +63,7 @@ mysql -u root -p < sky.sql
 
 ### 2. 配置文件
 
-创建 `sky-server/src/main/resources/application-dev.yml`：
+编辑 `sky-server/src/main/resources/application-dev.yml`：
 
 ```yaml
 sky:
@@ -75,24 +79,28 @@ sky:
     port: 6379
     password: 你的Redis密码
     database: 10
-  alioss:                                    # 非必需，文件上传功能需要
+  # === AI Agent 配置 ===
+  agent:
+    deepseek:
+      api-key: ${DEEPSEEK_API_KEY:你的DeepSeek-API-Key}
+  # === 大数据平台 SSH 配置（可选）===
+  bigdata:
+    ssh:
+      host: ${BIGDATA_SSH_HOST:192.168.68.100}
+      port: ${BIGDATA_SSH_PORT:22}
+      username: ${BIGDATA_SSH_USER:hadoop}
+      password: ${BIGDATA_SSH_PASSWORD:}
+      private-key-path: ${BIGDATA_SSH_KEY_PATH:}
+  # 以下为可选配置
+  alioss:
     endpoint: oss-cn-beijing.aliyuncs.com
-    access-key-id: 你的AccessKey
-    access-key-secret: 你的AccessSecret
-    bucket-name: 你的Bucket名称
-  wechat:                                    # 非必需，微信支付功能需要
+    ...
+  wechat:
     appid: 你的小程序AppID
-    secret: 你的小程序Secret
-    mchid: 商户号
-    mchSerialNo: 商户证书序列号
-    privateKeyFilePath: 商户私钥路径
-    apiV3Key: APIv3密钥
-    weChatPayCertFilePath: 微信支付平台证书路径
-    notifyUrl: 支付回调地址
-    refundNotifyUrl: 退款回调地址
+    ...
 ```
 
-> 也可参考 `application-dev.yml.example` 模板文件。
+> 💡 AI Agent 需要 DeepSeek API Key（https://platform.deepseek.com/），大数据功能需要 VMware 3 节点集群。
 
 ### 3. 启动服务
 
@@ -142,11 +150,18 @@ sky-take-out/
 │       └── vo/              # 视图对象
 ├── sky-server/              # 主服务模块
 │   └── com/sky/
+│       ├── agent/            # 🆕 AI Agent 模块
+│       │   ├── client/       #   DeepSeek API / SSH 客户端
+│       │   ├── core/         #   Tool Use 循环引擎 / 工具接口
+│       │   ├── service/      #   SQL Agent / 大数据 Agent 服务
+│       │   └── tool/
+│       │       ├── sql/      #   MySQL 工具集 (4 tools)
+│       │       └── bigdata/  #   大数据工具集 (4 tools)
 │       ├── annotation/      # 自定义注解（@AutoFill）
 │       ├── aspect/          # AOP 切面（自动填充）
 │       ├── config/          # 配置类
 │       ├── controller/
-│       │   ├── admin/       # 管理端接口
+│       │   ├── admin/       # 管理端接口（含 Agent 对话）
 │       │   ├── user/        # 用户端接口
 │       │   └── nofity/      # 支付回调接口
 │       ├── handler/         # 全局异常处理
@@ -155,6 +170,8 @@ sky-take-out/
 │       ├── service/         # 业务逻辑层
 │       ├── task/            # 定时任务
 │       └── websocket/       # WebSocket 服务
+├── hive-create-tables.sql   # 🆕 Hive 外表 DDL
+└── generate-sample-data.sql # 🆕 样例数据 SQL
 └── sky.sql                  # 数据库初始化脚本
 ```
 

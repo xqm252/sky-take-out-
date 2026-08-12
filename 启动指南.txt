@@ -1,0 +1,220 @@
+============================================================
+  苍穹外卖 — 前后端启动与关闭指南
+  更新时间: 2026-08-12
+============================================================
+
+目录:
+  一、环境检查
+  二、后端启动
+  三、后端关闭
+  四、前端启动
+  五、前端关闭
+  六、大数据集群启动（可选）
+  七、大数据集群关闭（可选）
+  八、常见问题
+
+============================================================
+  一、环境检查
+============================================================
+
+启动前确认以下服务已运行:
+
+  MySQL   -> 端口 3306，数据库 sky_take_out
+  Redis   -> 端口 6379，数据库 10
+
+检查命令:
+  netstat -ano | findstr "3306"
+  netstat -ano | findstr "6379"
+
+============================================================
+  二、后端启动 (Spring Boot, 端口 8080)
+============================================================
+
+1. 设置 DeepSeek API Key（AI Agent 功能必需）:
+
+   PowerShell:
+     $env:DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxx"
+
+   CMD:
+     set DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+
+   也可在 IDEA 的 Run Configuration -> Environment Variables 中添加
+   或直接编辑 application.yml 第 72 行
+
+2. 打开终端，进入后端目录:
+   cd D:\SkyXqm\苍穹外卖\sky-take-out
+
+3. 编译并启动:
+   mvn clean install -DskipTests
+   mvn spring-boot:run -pl sky-server
+
+   或在 IDEA 中直接运行 SkyApplication.java
+
+4. 看到以下日志表示启动成功:
+   Started SkyApplication in X.XXX seconds
+   ToolRegistry initialized: 8 tools registered
+
+5. 验证:
+   Swagger 文档: http://localhost:8080/doc.html
+   Agent 工具:   curl http://localhost:8080/admin/agent/tools
+                 (需要 JWT Token，见常见问题)
+
+============================================================
+  三、后端关闭
+============================================================
+
+方式一 — IDEA 中:
+  点击 Stop 按钮（红色方块）
+
+方式二 — 命令行:
+  a) 查找进程:
+     netstat -ano | findstr ":8080"
+
+  b) 杀掉进程（假设 PID 是 22732）:
+     taskkill /F /PID 22732
+
+方式三 — 杀全部 Java:
+  taskkill /F /IM java.exe
+  (会杀掉所有 Java 进程，慎用)
+
+============================================================
+  四、前端启动 (Vue 2 + Element UI, 端口 8888)
+============================================================
+
+1. 确保后端已启动（前端通过代理 /api 转发到后端）
+
+2. 打开终端，进入前端目录:
+   cd D:\SkyXqm\苍穹外卖\project-sky-admin-vue-ts
+
+3. 首次运行安装依赖:
+   npm install --legacy-peer-deps
+
+4. 启动开发服务器:
+   npm run serve
+
+5. 看到以下日志表示启动成功:
+   App running at:
+   - Local:   http://localhost:8888/
+
+6. 浏览器打开 http://localhost:8888
+
+7. 登录:
+   用户名: admin
+   密码:   123456
+
+8. 侧边栏进入 "AI 助手" 即可使用 Agent 对话功能
+   - SQL Agent:    查询 MySQL 业务数据库
+   - 大数据 Agent: 查询 HDFS/Hive 数据仓库（需集群已启动）
+
+============================================================
+  五、前端关闭
+============================================================
+
+方式一 — 终端中:
+  按 Ctrl + C，输入 Y 确认
+
+方式二 — 关掉终端窗口
+
+============================================================
+  六、大数据集群启动（可选，需要 VMware 3 节点已开机）
+============================================================
+
+集群拓扑:
+  hadoop-master  192.168.68.100  (NameNode, RM, HMaster, Hive)
+  hadoop-slave1  192.168.68.101  (DataNode, NM, RegionServer)
+  hadoop-slave2  192.168.68.102  (DataNode, NM, RegionServer)
+
+SSH 连接:
+  ssh hadoop@192.168.68.100
+  密钥: ~/.ssh/id_hadoop_ed25519 (Ed25519) 或 ~/.ssh/id_rsa_jsch (RSA)
+
+启动必须按以下顺序:
+
+1. Zookeeper（3 个节点都要启）:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh start"
+   ssh hadoop@192.168.68.101 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh start"
+   ssh hadoop@192.168.68.102 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh start"
+
+2. HDFS:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && start-dfs.sh"
+
+3. YARN:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && start-yarn.sh"
+
+4. HBase:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && start-hbase.sh"
+
+5. 验证（master 应看到 8 个进程，slave 各 4 个）:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && jps"
+
+   期望输出:
+   QuorumPeerMain, NameNode, DataNode, SecondaryNameNode,
+   ResourceManager, NodeManager, HMaster, HRegionServer
+
+============================================================
+  七、大数据集群关闭
+============================================================
+
+关闭顺序与启动相反:
+
+1. HBase:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && stop-hbase.sh"
+
+2. YARN:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && stop-yarn.sh"
+
+3. HDFS:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && stop-dfs.sh"
+
+4. Zookeeper（3 个节点都要关）:
+   ssh hadoop@192.168.68.100 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh stop"
+   ssh hadoop@192.168.68.101 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh stop"
+   ssh hadoop@192.168.68.102 "source /etc/profile.d/bigdata.sh && /opt/module/zookeeper-3.5.7/bin/zkServer.sh stop"
+
+============================================================
+  八、常见问题
+============================================================
+
+Q: 启动后端报 "Port 8080 was already in use"
+A: 之前的后端进程没关，执行:
+   netstat -ano | findstr ":8080"
+   taskkill /F /PID <PID号>
+
+Q: 前端 npm install 失败
+A: 使用 --legacy-peer-deps 参数:
+   npm install --legacy-peer-deps
+
+Q: 前端编译报 "Unexpected token" 或 fiber 模块错误
+A: fiber 在 Node 22 上不兼容，已安装 sass 替代，错误不影响运行。
+
+Q: AI 助手返回 "DeepSeek API Key 未配置"
+A: 设置环境变量 DEEPSEEK_API_KEY，或在 application.yml 第 72 行直接填写。
+
+Q: 大数据 Agent 返回 "SSH 主机未配置" 或 "SSH 连接失败"
+A: 检查虚拟机是否开机、SSH 是否能连接:
+   ssh hadoop@192.168.68.100
+   如使用密码认证，设置环境变量 BIGDATA_SSH_PASSWORD=hadoop123
+   如使用密钥认证，确保 ~/.ssh/id_rsa_jsch 存在
+
+Q: JWT 已过期需重新登录
+A: 访问 http://localhost:8888 重新登录，Token 有效期 2 小时。
+
+Q: 接口返回中文乱码
+A: application.yml 中已配置 UTF-8，检查 MySQL 字符集是否为 utf8mb4。
+
+============================================================
+  快速启动检查清单
+============================================================
+
+□ MySQL 已启动 (3306)
+□ Redis 已启动 (6379)
+□ DEEPSEEK_API_KEY 已设置（可选，AI Agent 需要）
+□ 后端编译通过 (mvn compile)
+□ 后端启动成功 (8080)
+□ 前端 npm install 完成
+□ 前端 npm run serve 启动 (8888)
+□ 浏览器打开 http://localhost:8888 能登录
+□ [可选] 大数据集群已启动（jps 验证）
+□ [可选] BIGDATA_SSH_PASSWORD 或 SSH 密钥已配置
+
+============================================================
